@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CargoData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/CargoData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "sandbag"
+name_ru = "Мешок с песком"
+weight = 14.0
+reward_base = 1.9
+reputation_base = 5.0
+instability = 0.12
+unlock_reputation = 35.0

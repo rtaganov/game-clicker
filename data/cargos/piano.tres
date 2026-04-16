@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CargoData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/CargoData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "piano"
+name_ru = "Пианино"
+weight = 42.0
+reward_base = 5.5
+reputation_base = 16.0
+instability = 0.33
+unlock_reputation = 260.0

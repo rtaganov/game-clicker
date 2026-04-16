@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MechanismData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/MechanismData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "beam"
+name_ru = "Веревка через балку"
+lift_speed_base = 0.8
+click_power = 0.55
+heat_max = 100.0
+heat_gain_per_click = 13.0
+heat_cool_rate = 11.0
+overheat_threshold = 80.0
+hold_efficiency = 0.25
+cost = 0.0

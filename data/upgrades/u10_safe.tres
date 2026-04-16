@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/UpgradeData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "u10_safe"
+name_ru = "Школа безопасной работы (+best safe handling)"
+description = "Ускоряет безопасное удержание и контроль."
+cost = 800.0
+stat_key = "safe_handling_bonus"
+value = 0.18
