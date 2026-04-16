@@ -16,7 +16,7 @@ func load_progress() -> PlayerProgress:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if file == null:
 		return progress
-	var parsed := JSON.parse_string(file.get_as_text())
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if parsed is Dictionary:
 		progress.from_dict(parsed)
 	return progress
