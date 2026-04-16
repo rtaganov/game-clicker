@@ -22,6 +22,9 @@ class_name MainUI
 var _message_timer := 0.0
 
 func _ready() -> void:
+	if game == null:
+		push_error("MainUI: GameManager node not found")
+		return
 	game.state_changed.connect(_refresh)
 	game.message_emitted.connect(_show_message)
 	lift_button.pressed.connect(game.click_lift)
@@ -81,6 +84,9 @@ func _refresh() -> void:
 	var cargo := game.get_selected_cargo()
 	var rig := game.get_selected_rig()
 	var mech := game.get_selected_mechanism()
+	if cargo == null or rig == null or mech == null:
+		message_label.text = "Ошибка данных: проверьте ресурсы грузов/оснастки/механизмов"
+		return
 	money_label.text = "Деньги: %.1f" % game.progress.money
 	rep_label.text = "Репутация: %.1f" % game.progress.reputation
 	cargo_label.text = "Груз: %s" % cargo.name_ru

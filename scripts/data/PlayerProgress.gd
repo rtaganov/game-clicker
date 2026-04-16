@@ -27,10 +27,19 @@ func to_dict() -> Dictionary:
 func from_dict(data: Dictionary) -> void:
 	money = data.get("money", 0.0)
 	reputation = data.get("reputation", 0.0)
-	unlocked_cargos = Array(data.get("unlocked_cargos", ["crate"]), TYPE_STRING, "", null)
-	purchased_upgrades = Array(data.get("purchased_upgrades", []), TYPE_STRING, "", null)
-	purchased_rigs = Array(data.get("purchased_rigs", ["rope"]), TYPE_STRING, "", null)
-	purchased_mechanisms = Array(data.get("purchased_mechanisms", ["beam"]), TYPE_STRING, "", null)
+	unlocked_cargos = _to_string_array(data.get("unlocked_cargos", ["crate"]), ["crate"])
+	purchased_upgrades = _to_string_array(data.get("purchased_upgrades", []), [])
+	purchased_rigs = _to_string_array(data.get("purchased_rigs", ["rope"]), ["rope"])
+	purchased_mechanisms = _to_string_array(data.get("purchased_mechanisms", ["beam"]), ["beam"])
 	best_heights = data.get("best_heights", {})
 	selected_rig = data.get("selected_rig", "rope")
 	selected_mechanism = data.get("selected_mechanism", "beam")
+
+func _to_string_array(value: Variant, fallback: Array[String]) -> Array[String]:
+	if value is not Array:
+		return fallback.duplicate()
+	var result: Array[String] = []
+	for entry in value:
+		if entry is String:
+			result.append(entry)
+	return result

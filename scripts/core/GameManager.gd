@@ -27,9 +27,10 @@ var upgrade_system := UpgradeSystem.new()
 func _ready() -> void:
 	_build_maps()
 	progress = SaveManager.load_progress()
+	_ensure_valid_progress_defaults()
 	_refresh_unlocks()
 	upgrade_system.rebuild(progress.purchased_upgrades, upgrade_map)
-	if not progress.unlocked_cargos.has(selected_cargo_id):
+	if not progress.unlocked_cargos.is_empty() and not progress.unlocked_cargos.has(selected_cargo_id):
 		selected_cargo_id = progress.unlocked_cargos[0]
 	state_changed.emit()
 
@@ -77,6 +78,16 @@ func _build_maps() -> void:
 	for u in upgrades:
 		upgrade_map[u.id] = u
 
+func _ensure_valid_progress_defaults() -> void:
+	if progress.unlocked_cargos.is_empty() and not cargos.is_empty():
+		progress.unlocked_cargos.append(cargos[0].id)
+	if progress.selected_rig == "" or not rig_map.has(progress.selected_rig):
+		progress.selected_rig = rigs[0].id if not rigs.is_empty() else ""
+	if progress.selected_mechanism == "" or not mech_map.has(progress.selected_mechanism):
+		progress.selected_mechanism = mechanisms[0].id if not mechanisms.is_empty() else ""
+	if not progress.unlocked_cargos.has(selected_cargo_id):
+		selected_cargo_id = progress.unlocked_cargos[0] if not progress.unlocked_cargos.is_empty() else (cargos[0].id if not cargos.is_empty() else "")
+
 func _refresh_unlocks() -> void:
 	for cargo in cargos:
 		if progress.reputation >= cargo.unlock_reputation and not progress.unlocked_cargos.has(cargo.id):
@@ -95,6 +106,9 @@ func get_selected_mechanism() -> MechanismData:
 func start_attempt() -> bool:
 	var cargo := get_selected_cargo()
 	var rig := get_selected_rig()
+	if cargo == null or rig == null:
+		message_emitted.emit("Не удалось начать попытку: отсутствуют данные")
+		return false
 	if cargo.weight > _effective_rig(rig).max_weight:
 		message_emitted.emit("Слишком тяжелый груз для текущей оснастки")
 		return false
@@ -121,6 +135,10 @@ func end_attempt_button() -> void:
 
 func _end_attempt(success: bool) -> void:
 	var cargo := get_selected_cargo()
+	if cargo == null:
+		in_attempt = false
+		state_changed.emit()
+		return
 	in_attempt = false
 	var best_height := float(progress.best_heights.get(cargo.id, 0.0))
 	var new_record := lift_controller.current_height > best_height
@@ -176,6 +194,8 @@ func buy_upgrade(upgrade_id: String) -> void:
 
 func _effective_rig(rig: RigData) -> RigData:
 	var clone := RigData.new()
+	if rig == null:
+		return clone
 	clone.id = rig.id
 	clone.name_ru = rig.name_ru
 	clone.max_weight = rig.max_weight
@@ -188,6 +208,8 @@ func _effective_rig(rig: RigData) -> RigData:
 
 func _effective_mechanism(mech: MechanismData) -> MechanismData:
 	var clone := MechanismData.new()
+	if mech == null:
+		return clone
 	clone.id = mech.id
 	clone.name_ru = mech.name_ru
 	clone.lift_speed_base = mech.lift_speed_base + upgrade_system.modifiers["speed_bonus"]

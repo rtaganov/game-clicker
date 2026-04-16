@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/MainUI.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/core/GameManager.gd" id="2"]
