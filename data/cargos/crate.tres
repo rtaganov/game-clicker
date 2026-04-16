@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CargoData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CargoData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "crate"
+name_ru = "Деревянный ящик"
+weight = 8.0
+reward_base = 1.2
+reputation_base = 3.0
+instability = 0.05
+unlock_reputation = 0.0

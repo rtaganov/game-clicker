@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RigData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/RigData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "cable"
+name_ru = "Канат"
+max_weight = 22.0
+stability = 0.68
+durability_max = 125.0
+wear_resistance = 0.9
+hold_bonus = 0.08
+cost = 120.0

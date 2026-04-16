@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MechanismData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/MechanismData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "winch"
+name_ru = "Ручная лебедка"
+lift_speed_base = 1.55
+click_power = 0.95
+heat_max = 110.0
+heat_gain_per_click = 14.0
+heat_cool_rate = 13.0
+overheat_threshold = 78.0
+hold_efficiency = 0.78
+cost = 1500.0

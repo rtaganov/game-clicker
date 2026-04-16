@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MechanismData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/MechanismData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "block"
+name_ru = "Простой блок"
+lift_speed_base = 1.05
+click_power = 0.65
+heat_max = 105.0
+heat_gain_per_click = 11.0
+heat_cool_rate = 12.0
+overheat_threshold = 82.0
+hold_efficiency = 0.4
+cost = 180.0

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RigData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/RigData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "sling"
+name_ru = "Усиленная стропа"
+max_weight = 38.0
+stability = 0.82
+durability_max = 165.0
+wear_resistance = 1.1
+hold_bonus = 0.18
+cost = 420.0

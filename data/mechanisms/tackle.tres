@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MechanismData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/MechanismData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "tackle"
+name_ru = "Таль"
+lift_speed_base = 1.2
+click_power = 0.7
+heat_max = 115.0
+heat_gain_per_click = 9.0
+heat_cool_rate = 14.0
+overheat_threshold = 85.0
+hold_efficiency = 0.6
+cost = 550.0

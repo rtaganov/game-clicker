@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CargoData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/CargoData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "washer"
+name_ru = "Стиральная машина"
+weight = 26.0
+reward_base = 3.2
+reputation_base = 9.0
+instability = 0.2
+unlock_reputation = 110.0
