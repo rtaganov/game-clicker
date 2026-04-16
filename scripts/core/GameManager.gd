@@ -7,31 +7,29 @@ signal message_emitted(text: String)
 @export var cargos: Array[CargoData] = []
 @export var rigs: Array[RigData] = []
 @export var mechanisms: Array[MechanismData] = []
-@export var upgrades: Array[UpgradeData] = []
 
 var progress: PlayerProgress
 var selected_cargo_id: String = "crate"
 var in_attempt: bool = false
 
+enum AttemptState { IDLE, LIFTING, OVERHEATED, FAILED }
+var attempt_state: AttemptState = AttemptState.IDLE
+var debug_status: String = "init"
+
 var cargo_map: Dictionary = {}
 var rig_map: Dictionary = {}
 var mech_map: Dictionary = {}
-var upgrade_map: Dictionary = {}
 
 var heat_system := HeatSystem.new()
 var lift_controller := LiftController.new()
 var durability_system := DurabilitySystem.new()
 var reward_system := RewardSystem.new()
-var upgrade_system := UpgradeSystem.new()
 
 func _ready() -> void:
 	_build_maps()
 	progress = SaveManager.load_progress()
 	_ensure_valid_progress_defaults()
-	_refresh_unlocks()
-	upgrade_system.rebuild(progress.purchased_upgrades, upgrade_map)
-	if not progress.unlocked_cargos.is_empty() and not progress.unlocked_cargos.has(selected_cargo_id):
-		selected_cargo_id = progress.unlocked_cargos[0]
+	debug_status = "ready"
 	state_changed.emit()
 
 func _process(delta: float) -> void:
@@ -43,29 +41,31 @@ func _process(delta: float) -> void:
 	if cargo == null or rig == null or mech == null:
 		return
 
-	var effective_mech := _effective_mechanism(mech)
-	heat_system.process(delta, effective_mech.heat_cool_rate, effective_mech.overheat_threshold)
+	heat_system.process(delta, mech.heat_cool_rate, mech.overheat_threshold)
 	var is_overheated := heat_system.state == HeatSystem.HeatState.OVERHEATED
-	if is_overheated and int(heat_system.current_heat) == int(effective_mech.overheat_threshold):
-		message_emitted.emit("Перегрев")
+	if is_overheated:
+		attempt_state = AttemptState.OVERHEATED
 
-	var lift_data := lift_controller.process(
+	lift_controller.process(
 		delta,
 		cargo,
-		_effective_rig(rig),
-		effective_mech,
-		heat_system.get_heat_factor(effective_mech.overheat_threshold),
-		is_overheated,
-		1.0 + upgrade_system.modifiers["safe_handling_bonus"]
+		rig,
+		mech,
+		heat_system.get_heat_factor(mech.overheat_threshold),
+		is_overheated
 	)
 
-	durability_system.process(delta, _effective_rig(rig), effective_mech, cargo, lift_controller.current_height, lift_controller.hold_time, heat_system.current_heat)
-	progress.money += reward_system.money_per_sec(cargo, _effective_rig(rig), effective_mech, lift_controller.current_height, upgrade_system.modifiers["hold_income_bonus"]) * delta
+	durability_system.process(delta, rig, mech, cargo, lift_controller.current_height, lift_controller.hold_time, heat_system.current_heat)
+	if lift_controller.current_height > 0.0:
+		progress.money += reward_system.money_per_sec(cargo, rig, mech, lift_controller.current_height) * delta
 
 	if durability_system.current_durability <= 0.0:
-		_end_attempt(false)
-		message_emitted.emit("Попытка провалена")
+		_fail_attempt()
 
+	if in_attempt and not is_overheated:
+		attempt_state = AttemptState.LIFTING
+
+	debug_status = "height=%.2f heat=%.1f state=%s" % [lift_controller.current_height, heat_system.current_heat, get_state_name()]
 	state_changed.emit()
 
 func _build_maps() -> void:
@@ -75,24 +75,17 @@ func _build_maps() -> void:
 		rig_map[r.id] = r
 	for m in mechanisms:
 		mech_map[m.id] = m
-	for u in upgrades:
-		upgrade_map[u.id] = u
 
 func _ensure_valid_progress_defaults() -> void:
-	if progress.unlocked_cargos.is_empty() and not cargos.is_empty():
-		progress.unlocked_cargos.append(cargos[0].id)
-	if progress.selected_rig == "" or not rig_map.has(progress.selected_rig):
-		progress.selected_rig = rigs[0].id if not rigs.is_empty() else ""
-	if progress.selected_mechanism == "" or not mech_map.has(progress.selected_mechanism):
-		progress.selected_mechanism = mechanisms[0].id if not mechanisms.is_empty() else ""
-	if not progress.unlocked_cargos.has(selected_cargo_id):
-		selected_cargo_id = progress.unlocked_cargos[0] if not progress.unlocked_cargos.is_empty() else (cargos[0].id if not cargos.is_empty() else "")
-
-func _refresh_unlocks() -> void:
-	for cargo in cargos:
-		if progress.reputation >= cargo.unlock_reputation and not progress.unlocked_cargos.has(cargo.id):
-			progress.unlocked_cargos.append(cargo.id)
-			message_emitted.emit("Груз открыт: %s" % cargo.name_ru)
+	if progress.unlocked_cargos.is_empty():
+		progress.unlocked_cargos.append("crate")
+	selected_cargo_id = "crate"
+	progress.selected_rig = "rope"
+	progress.selected_mechanism = "beam"
+	if not progress.purchased_rigs.has("rope"):
+		progress.purchased_rigs.append("rope")
+	if not progress.purchased_mechanisms.has("beam"):
+		progress.purchased_mechanisms.append("beam")
 
 func get_selected_cargo() -> CargoData:
 	return cargo_map.get(selected_cargo_id)
@@ -107,16 +100,19 @@ func start_attempt() -> bool:
 	var cargo := get_selected_cargo()
 	var rig := get_selected_rig()
 	if cargo == null or rig == null:
-		message_emitted.emit("Не удалось начать попытку: отсутствуют данные")
+		message_emitted.emit("Не удалось начать попытку")
 		return false
-	if cargo.weight > _effective_rig(rig).max_weight:
-		message_emitted.emit("Слишком тяжелый груз для текущей оснастки")
+	if cargo.weight > rig.max_weight:
+		message_emitted.emit("Слишком тяжелый груз")
 		return false
 	in_attempt = true
+	attempt_state = AttemptState.LIFTING
 	lift_controller.reset()
 	heat_system.current_heat = 0.0
 	heat_system.state = HeatSystem.HeatState.NORMAL
-	durability_system.reset(_effective_rig(rig).durability_max)
+	durability_system.reset(rig.durability_max)
+	debug_status = "attempt started"
+	print("[DEBUG] start_attempt")
 	state_changed.emit()
 	return true
 
@@ -124,14 +120,32 @@ func click_lift() -> void:
 	if not in_attempt:
 		if not start_attempt():
 			return
-	var mech := _effective_mechanism(get_selected_mechanism())
+	var mech := get_selected_mechanism()
+	if mech == null:
+		return
+	if heat_system.state == HeatSystem.HeatState.OVERHEATED:
+		attempt_state = AttemptState.OVERHEATED
+		message_emitted.emit("Перегрев: подъем временно заблокирован")
+		debug_status = "lift click blocked by overheat"
+		print("[DEBUG] click_lift blocked")
+		state_changed.emit()
+		return
 	lift_controller.on_click(mech.click_power)
 	heat_system.on_click(mech.heat_gain_per_click, mech.heat_max)
+	attempt_state = AttemptState.LIFTING
+	debug_status = "lift click accepted"
+	print("[DEBUG] click_lift accepted")
 	state_changed.emit()
 
 func end_attempt_button() -> void:
 	if in_attempt:
 		_end_attempt(true)
+		return
+	if attempt_state == AttemptState.FAILED:
+		_reset_attempt_runtime()
+		attempt_state = AttemptState.IDLE
+		debug_status = "failed attempt cleared"
+		state_changed.emit()
 
 func _end_attempt(success: bool) -> void:
 	var cargo := get_selected_cargo()
@@ -145,79 +159,41 @@ func _end_attempt(success: bool) -> void:
 	if new_record:
 		progress.best_heights[cargo.id] = lift_controller.current_height
 		message_emitted.emit("Новый рекорд")
-	progress.reputation += reward_system.reputation_reward(cargo, success, new_record, upgrade_system.modifiers["reputation_bonus"])
-	_refresh_unlocks()
+	progress.reputation += reward_system.reputation_reward(cargo, success, new_record)
 	SaveManager.save_progress(progress)
+	_reset_attempt_runtime()
+	attempt_state = AttemptState.IDLE
+	debug_status = "attempt ended"
+	print("[DEBUG] end_attempt success=%s" % success)
 	state_changed.emit()
 
-func buy_rig(rig_id: String) -> void:
-	if progress.purchased_rigs.has(rig_id):
-		progress.selected_rig = rig_id
-		state_changed.emit()
-		return
-	var rig: RigData = rig_map.get(rig_id)
-	if rig and progress.money >= rig.cost:
-		progress.money -= rig.cost
-		progress.purchased_rigs.append(rig_id)
-		progress.selected_rig = rig_id
-		SaveManager.save_progress(progress)
-		state_changed.emit()
+func _fail_attempt() -> void:
+	in_attempt = false
+	attempt_state = AttemptState.FAILED
+	message_emitted.emit("Попытка провалена")
+	progress.reputation += reward_system.reputation_reward(get_selected_cargo(), false, false)
+	SaveManager.save_progress(progress)
+	_reset_attempt_runtime()
+	debug_status = "attempt failed"
+	print("[DEBUG] fail_attempt")
+	state_changed.emit()
 
-func buy_mechanism(mech_id: String) -> void:
-	if progress.purchased_mechanisms.has(mech_id):
-		progress.selected_mechanism = mech_id
-		state_changed.emit()
-		return
-	var mech: MechanismData = mech_map.get(mech_id)
-	if mech and progress.money >= mech.cost:
-		progress.money -= mech.cost
-		progress.purchased_mechanisms.append(mech_id)
-		progress.selected_mechanism = mech_id
-		SaveManager.save_progress(progress)
-		state_changed.emit()
+func _reset_attempt_runtime() -> void:
+	lift_controller.reset()
+	heat_system.current_heat = 0.0
+	heat_system.state = HeatSystem.HeatState.NORMAL
+	var rig := get_selected_rig()
+	if rig != null:
+		durability_system.reset(rig.durability_max)
 
-func select_cargo(cargo_id: String) -> void:
-	if progress.unlocked_cargos.has(cargo_id):
-		selected_cargo_id = cargo_id
-		state_changed.emit()
-
-func buy_upgrade(upgrade_id: String) -> void:
-	if progress.purchased_upgrades.has(upgrade_id):
-		return
-	var up: UpgradeData = upgrade_map.get(upgrade_id)
-	if up and progress.money >= up.cost:
-		progress.money -= up.cost
-		progress.purchased_upgrades.append(upgrade_id)
-		upgrade_system.rebuild(progress.purchased_upgrades, upgrade_map)
-		SaveManager.save_progress(progress)
-		state_changed.emit()
-
-func _effective_rig(rig: RigData) -> RigData:
-	var clone := RigData.new()
-	if rig == null:
-		return clone
-	clone.id = rig.id
-	clone.name_ru = rig.name_ru
-	clone.max_weight = rig.max_weight
-	clone.stability = rig.stability + upgrade_system.modifiers["stability_bonus"]
-	clone.durability_max = rig.durability_max + upgrade_system.modifiers["durability_bonus"]
-	clone.wear_resistance = rig.wear_resistance
-	clone.hold_bonus = rig.hold_bonus + upgrade_system.modifiers["hold_bonus_bonus"]
-	clone.cost = rig.cost
-	return clone
-
-func _effective_mechanism(mech: MechanismData) -> MechanismData:
-	var clone := MechanismData.new()
-	if mech == null:
-		return clone
-	clone.id = mech.id
-	clone.name_ru = mech.name_ru
-	clone.lift_speed_base = mech.lift_speed_base + upgrade_system.modifiers["speed_bonus"]
-	clone.click_power = mech.click_power + upgrade_system.modifiers["click_power_bonus"]
-	clone.heat_max = mech.heat_max
-	clone.heat_gain_per_click = mech.heat_gain_per_click * upgrade_system.modifiers["heat_gain_mult"]
-	clone.heat_cool_rate = mech.heat_cool_rate + upgrade_system.modifiers["cooling_bonus"]
-	clone.overheat_threshold = mech.overheat_threshold
-	clone.hold_efficiency = mech.hold_efficiency
-	clone.cost = mech.cost
-	return clone
+func get_state_name() -> String:
+	match attempt_state:
+		AttemptState.IDLE:
+			return "Idle"
+		AttemptState.LIFTING:
+			return "Lifting"
+		AttemptState.OVERHEATED:
+			return "Overheated"
+		AttemptState.FAILED:
+			return "Failed"
+	return "Idle"
