@@ -1,5 +1,4 @@
 extends Node
-class_name SaveManager
 
 const SAVE_PATH := "user://progress.save"
 
