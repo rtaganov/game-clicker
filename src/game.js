@@ -27,7 +27,7 @@ export class Game {
   buyMechanism(id){ const m=mechanisms.find(x=>x.id===id); if(this.ownedMechanisms.has(id)){ this.selectedMechanism=id; return;} if(this.money>=m.cost){this.money-=m.cost;this.ownedMechanisms.add(id);this.selectedMechanism=id;this.resetAttempt();} }
   selectCargo(id){ if(this.unlockedCargo.has(id)){ this.selectedCargo=id; this.resetAttempt(); } }
   liftClick(){ triggerClickLift(this); }
-  finish(){ finishAttempt(this,this.state==='failed'); this.state='finished'; }
+  finish(){ finishAttempt(this,this.state==='failed'); }
   tick(dt){
     if(this.messageTimer>0){ this.messageTimer-=dt; if(this.messageTimer<=0)this.message=''; }
     if(this.state==='failed') return;
