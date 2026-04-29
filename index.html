@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rig Lift Incremental Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Rig Lift Incremental Prototype</h1>
+      <div class="stats">
+        <span>Money: $<strong id="money">0</strong></span>
+        <span>Reputation: <strong id="reputation">0</strong></span>
+        <span>State: <strong id="state">idle</strong></span>
+      </div>
+      <div id="messages" aria-live="polite"></div>
+    </header>
+
+    <main>
+      <section class="scene-panel">
+        <canvas id="gameCanvas" width="420" height="560"></canvas>
+        <div class="meters">
+          <div>
+            <label>Heat</label>
+            <div class="bar"><div id="heatBar" class="fill heat"></div></div>
+            <small id="heatText"></small>
+          </div>
+          <div>
+            <label>Durability</label>
+            <div class="bar"><div id="durabilityBar" class="fill durability"></div></div>
+            <small id="durabilityText"></small>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-panel">
+        <div class="selectors">
+          <h2>Loadout</h2>
+          <label>Cargo</label><div id="cargoList" class="list"></div>
+          <label>Rig</label><div id="rigList" class="list"></div>
+          <label>Mechanism</label><div id="mechList" class="list"></div>
+        </div>
+
+        <div class="attempt">
+          <h2>Attempt</h2>
+          <p>Current Cargo: <strong id="currentCargo"></strong></p>
+          <p>Current Rig: <strong id="currentRig"></strong></p>
+          <p>Current Mechanism: <strong id="currentMech"></strong></p>
+          <p>Height: <strong id="height">0.00</strong> m</p>
+          <p>Best Height: <strong id="bestHeight">0.00</strong> m</p>
+          <p>Hold Time: <strong id="holdTime">0.00</strong> s</p>
+          <button id="liftBtn" class="primary">Lift (Space)</button>
+          <button id="finishBtn">Finish Attempt</button>
+        </div>
+
+        <div class="upgrades">
+          <h2>Upgrades</h2>
+          <div id="upgradeList" class="list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
